@@ -158,7 +158,7 @@ typedef enum _DS4_DPAD_DIRECTIONS
 
 } DS4_DPAD_DIRECTIONS, *PDS4_DPAD_DIRECTIONS;
 
-typedef enum _DS4_BITMASK_FLAGS : BYTE
+typedef enum _DS4_BITMASK_FLAGS
 {
     DS4_BATTERY_CHARGING = 1 << 4, // active high (To fully Confirm)
     DS4_USB_CABLE_CONNECTED = 1 << 5,
@@ -270,7 +270,7 @@ VOID FORCEINLINE DS4_SET_BITMASK(
     _In_ DS4_BITMASK_FLAGS Flags
 )
 {
-    Report->bBitmask = Flags;
+    Report->bBitmask = (BYTE)Flags;
 }
 
 VOID FORCEINLINE DS4_REPORT_INIT(
