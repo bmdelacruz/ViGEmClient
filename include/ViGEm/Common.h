@@ -160,13 +160,13 @@ typedef enum _DS4_DPAD_DIRECTIONS
 
 typedef enum _DS4_BITMASK_FLAGS
 {
-    DS4_BATTERY_CHARGED = 1 << 3,
-    DS4_USB_CABLE_CONNECTED = 1 << 4,
-    DS4_HEADPHONE_CONNECTED = 1 << 5,
-    DS4_HEADPHONE_JACK_MIC_CONNECTED = 1 << 6,
+    DS4_BATTERY_CHARGING = 1 << 4, // active high
+    DS4_USB_CABLE_CONNECTED = 1 << 5,
+    DS4_HEADPHONE_CONNECTED = 1 << 6,
+    DS4_HEADPHONE_JACK_MIC_CONNECTED = 1 << 7,
     DS4_HEADPHONE_W_MIC_CONNECTED = (DS4_HEADPHONE_CONNECTED | DS4_HEADPHONE_JACK_MIC_CONNECTED)
 
-}DS4_BITMASK_FLAGS, *PDS4_BITMASK_FLAGS;
+} DS4_BITMASK_FLAGS, *PDS4_BITMASK_FLAGS;
 
 #include <pshpack1.h>
 
@@ -194,7 +194,7 @@ typedef struct _DS4_TOUCH_DATA
     BYTE bIsUp_TrackingID;
     BYTE abCoords[3];
 
-}DS4_TOUCH_DATA,*PDS4_TOUCH_DATA;
+} DS4_TOUCH_DATA,*PDS4_TOUCH_DATA;
 
 //
 // Dualshock 4 HID Input Report Extension
@@ -210,9 +210,11 @@ typedef struct _DS4_REPORT_EX
     SHORT nAccY;
     SHORT nAccZ;
     BYTE abReserved0[5];
-    BYTE bBitmask;
+    BYTE bBitmask; // MIC|HEADPHONE|USB CABLE|charging(active high?)|batteryNibble
+                   // batteryNibble (4b) indicates battery level. Max battery level value while charging is 11, other is 8
     BYTE abReserved1[2];
-    BYTE bTPADMask;
+    BYTE bTPADMask; // indicates number of touch packets in report (0x00 to 0x03 (USB) or 0x04 (BT)) 
+                    // Usually 0x01 or 0x00
     BYTE bTPADIncrement;
     /*
     TODO: Check V1 touch data, V2 over USB has been observed so far to only send max touch data of 2 fingers
@@ -220,9 +222,10 @@ typedef struct _DS4_REPORT_EX
     bTPADMask means.
     */
     DS4_TOUCH_DATA aCurrentTouchData[2];
+    BYTE bTPADIncrement2; // I prefer a different TOUCH_DATA structure, but if it needs to be like this, then this byte is required
     DS4_TOUCH_DATA aPreviousTouchData[2];
 
-    BYTE abReserved3[13]; //TODO: Quadruple check as it feels off
+    BYTE abReserved3[12]; //TODO: Quadruple check as it feels off
 
 } DS4_REPORT_EX,*PDS4_REPORT_EX;
 
@@ -251,19 +254,29 @@ VOID FORCEINLINE DS4_SET_TPAD(
     _In_ BYTE TouchId,
     _In_ BOOLEAN Active)
 {
-    //TODO: Check bounds since there is a spare bit
     if (FirstFinger) {
-        ReportEx->aCurrentTouchData[0].bIsUp_TrackingID = (!Active << 7) + TouchId;
+        ReportEx->aCurrentTouchData[0].bIsUp_TrackingID = (!Active << 7) + (0x7F & TouchId);
         ReportEx->aCurrentTouchData[0].abCoords[0] = (BYTE)(X & 0xFF);
         ReportEx->aCurrentTouchData[0].abCoords[1] = (BYTE)(((X & 0xF00) >> 8) | ((Y & 0xF) << 4));
         ReportEx->aCurrentTouchData[0].abCoords[2] = (BYTE)((Y & 0xFF0) >> 4);
     }
     else {
-        ReportEx->aCurrentTouchData[1].bIsUp_TrackingID = (!Active << 7) + TouchId;
+        ReportEx->aCurrentTouchData[1].bIsUp_TrackingID = (!Active << 7) + (0x7F & TouchId);
         ReportEx->aCurrentTouchData[1].abCoords[0] = (BYTE)(X & 0xFF);
         ReportEx->aCurrentTouchData[1].abCoords[1] = (BYTE)(((X & 0xF00) >> 8) | ((Y & 0xF) << 4));
         ReportEx->aCurrentTouchData[1].abCoords[2] = (BYTE)((Y & 0xFF0) >> 4);
     }
+}
+
+//
+// Sets special bitmask flags
+//
+VOID FORCEINLINE DS4_SET_BITMASK(
+    _Out_ PDS4_REPORT_EX Report,
+    _In_ DS4_BITMASK_FLAGS Flags
+)
+{
+    Report->bBitmask = Flags;
 }
 
 VOID FORCEINLINE DS4_REPORT_INIT(
@@ -291,5 +304,8 @@ VOID FORCEINLINE DS4_REPORT_EX_INIT(
     ReportEx->aCurrentTouchData[1].bIsUp_TrackingID = (1 << 7);
     ReportEx->aPreviousTouchData[0].bIsUp_TrackingID = (1 << 7);
     ReportEx->aPreviousTouchData[1].bIsUp_TrackingID = (1 << 7);
+
+    // 0x0B is max battery level for USB, 0x08 for BT
+    ReportEx->bBitmask = DS4_BATTERY_CHARGING | 0x0B;
 }
 
