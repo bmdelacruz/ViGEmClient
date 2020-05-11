@@ -362,6 +362,8 @@ VOID FORCEINLINE DS4_REQUEST_NOTIFICATION_INIT(
     Request->SerialNo = SerialNo;
 }
 
+#include <pshpack1.h>
+
 //
 // DualShock 4 request data
 // 
@@ -406,7 +408,9 @@ typedef struct _DS4_SUBMIT_REPORT_EX
 
 }DS4_SUBMIT_REPORT_EX,*PDS4_SUBMIT_REPORT_EX;
 
-//TODO: Check if it should be two structs or if it's better to have it fully presented
+//TODO: Check if it should be two structs or if it's better to have it fully presented and/or make a common struct
+// Talk with Nefarius about it
+
 //
 // DualShock 4 normal and extended request data
 //
@@ -416,6 +420,8 @@ typedef struct _DS4_SUBMIT_REPORT_FULL
     DS4_REPORT_EX ReportEx;
 
 }DS4_SUBMIT_REPORT_FULL,*PDS4_SUBMIT_REPORT_FULL;
+
+#include <poppack.h>
 
 //
 // Initializes a DualShock 4 report.
