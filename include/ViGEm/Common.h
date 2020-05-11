@@ -1,7 +1,7 @@
 /*
 MIT License
 
-Copyright (c) 2017-2019 Nefarius Software Solutions e.U. and Contributors
+Copyright (c) 2017-2020 Nefarius Software Solutions e.U. and Contributors
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,23 +27,23 @@ SOFTWARE.
 
 //
 // Represents the desired target type for the emulated device.
-//  
+//
 typedef enum _VIGEM_TARGET_TYPE
 {
-    // 
+    //
     // Microsoft Xbox 360 Controller (wired)
-    // 
+    //
     Xbox360Wired = 0,
     //
     // Sony DualShock 4 (wired)
-    // 
-    DualShock4Wired = 2 // NOTE: 1 skipped on purpose to maintain compatibility
+    //
+    DualShock4Wired = 2 // NOTE: 1 skipped on purpose to maintain compatibility (XboxOneWired)
 
 } VIGEM_TARGET_TYPE, *PVIGEM_TARGET_TYPE;
 
 //
 // Possible XUSB report buttons.
-// 
+//
 typedef enum _XUSB_BUTTON
 {
     XUSB_GAMEPAD_DPAD_UP            = 0x0001,
@@ -66,7 +66,7 @@ typedef enum _XUSB_BUTTON
 
 //
 // Represents an XINPUT_GAMEPAD-compatible report structure.
-// 
+//
 typedef struct _XUSB_REPORT
 {
     USHORT wButtons;
@@ -81,7 +81,7 @@ typedef struct _XUSB_REPORT
 
 //
 // Initializes a _XUSB_REPORT structure.
-// 
+//
 VOID FORCEINLINE XUSB_REPORT_INIT(
     _Out_ PXUSB_REPORT Report
 )
@@ -91,7 +91,7 @@ VOID FORCEINLINE XUSB_REPORT_INIT(
 
 //
 // The color value (RGB) of a DualShock 4 Lightbar
-// 
+//
 typedef struct _DS4_LIGHTBAR_COLOR
 {
     //
@@ -113,7 +113,7 @@ typedef struct _DS4_LIGHTBAR_COLOR
 
 //
 // DualShock 4 digital buttons
-// 
+//
 typedef enum _DS4_BUTTONS
 {
     DS4_BUTTON_THUMB_RIGHT      = 1 << 15,
@@ -133,7 +133,7 @@ typedef enum _DS4_BUTTONS
 
 //
 // DualShock 4 special buttons
-// 
+//
 typedef enum _DS4_SPECIAL_BUTTONS
 {
     DS4_SPECIAL_BUTTON_PS           = 1 << 0,
@@ -143,7 +143,7 @@ typedef enum _DS4_SPECIAL_BUTTONS
 
 //
 // DualShock 4 directional pad (HAT) values
-// 
+//
 typedef enum _DS4_DPAD_DIRECTIONS
 {
     DS4_BUTTON_DPAD_NONE        = 0x8,
@@ -160,7 +160,7 @@ typedef enum _DS4_DPAD_DIRECTIONS
 
 typedef enum _DS4_BITMASK_FLAGS
 {
-    DS4_BATTERY_CHARGING = 1 << 4, // active high
+    DS4_BATTERY_CHARGING = 1 << 4, // active high (To fully Confirm)
     DS4_USB_CABLE_CONNECTED = 1 << 5,
     DS4_HEADPHONE_CONNECTED = 1 << 6,
     DS4_HEADPHONE_JACK_MIC_CONNECTED = 1 << 7,
@@ -172,7 +172,7 @@ typedef enum _DS4_BITMASK_FLAGS
 
 //
 // DualShock 4 HID Input report
-// 
+//
 typedef struct _DS4_REPORT
 {
     BYTE bThumbLX;
@@ -210,21 +210,15 @@ typedef struct _DS4_REPORT_EX
     SHORT nAccY;
     SHORT nAccZ;
     BYTE abReserved0[5];
-    BYTE bBitmask; // MIC|HEADPHONE|USB CABLE|charging(active high?)|batteryNibble
+    BYTE bBitmask; // UNKNOWN|MIC|HEADPHONE|USB CABLE|charging(active high?)|batteryNibble
                    // batteryNibble (4b) indicates battery level. Max battery level value while charging is 11, other is 8
     BYTE abReserved1[2];
     BYTE bTPADMask; // indicates number of touch packets in report (0x00 to 0x03 (USB) or 0x04 (BT)) 
                     // Usually 0x01 or 0x00
     BYTE bTPADIncrement;
-    /*
-    TODO: Check V1 touch data, V2 over USB has been observed so far to only send max touch data of 2 fingers
-    and it doesn't track previous, but holds it persistently until another update. Along with conflicting data on what
-    bTPADMask means.
-    */
     DS4_TOUCH_DATA aCurrentTouchData[2];
-    BYTE bTPADIncrement2; // I prefer a different TOUCH_DATA structure, but if it needs to be like this, then this byte is required
+    BYTE bTPADIncrement2;
     DS4_TOUCH_DATA aPreviousTouchData[2];
-
     BYTE abReserved3[12]; //TODO: Quadruple check as it feels off
 
 } DS4_REPORT_EX,*PDS4_REPORT_EX;
@@ -233,7 +227,7 @@ typedef struct _DS4_REPORT_EX
 
 //
 // Sets the current state of the D-PAD on a DualShock 4 report.
-// 
+//
 VOID FORCEINLINE DS4_SET_DPAD(
     _Out_ PDS4_REPORT Report,
     _In_ DS4_DPAD_DIRECTIONS Dpad
