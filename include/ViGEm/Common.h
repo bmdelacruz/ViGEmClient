@@ -201,6 +201,7 @@ typedef struct _DS4_TOUCH_DATA
 //
 typedef struct _DS4_REPORT_EX
 {
+    DS4_REPORT Gamepad;
     USHORT wTimeStamp;
     BYTE bBatteryLvl;
     SHORT nGyroX;
@@ -292,6 +293,13 @@ VOID FORCEINLINE DS4_REPORT_EX_INIT(
 )
 {
     RtlZeroMemory(ReportEx, sizeof(DS4_REPORT_EX));
+
+    ReportEx->Gamepad.bThumbLX = 0x80;
+    ReportEx->Gamepad.bThumbLY = 0x80;
+    ReportEx->Gamepad.bThumbRX = 0x80;
+    ReportEx->Gamepad.bThumbRY = 0x80;
+
+    DS4_SET_DPAD(&ReportEx->Gamepad, DS4_BUTTON_DPAD_NONE);
 
     //TODO: Update once more testing is done
     ReportEx->aCurrentTouchData[0].bIsUp_TrackingID = (1 << 7);
