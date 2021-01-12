@@ -68,4 +68,6 @@ typedef struct _VIGEM_TARGET_T
     LPVOID NotificationUserData;
 
 	HANDLE cancelNotificationThreadEvent;
+
+    std::mutex *NotificationLock;
 } VIGEM_TARGET;

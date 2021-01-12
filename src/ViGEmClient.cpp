@@ -47,6 +47,7 @@ SOFTWARE.
 #include <algorithm>
 #include <thread>
 #include <functional>
+#include <mutex>
 
 //
 // Internal
@@ -91,6 +92,7 @@ PVIGEM_TARGET FORCEINLINE VIGEM_TARGET_ALLOC_INIT(
     target->Size = sizeof(VIGEM_TARGET);
     target->State = VIGEM_TARGET_INITIALIZED;
     target->Type = Type;
+    target->NotificationLock = new std::mutex();
     return target;
 }
 
@@ -608,6 +610,8 @@ VIGEM_ERROR vigem_target_x360_register_notification(
 
 			    if (GetOverlappedResult(_Client->hBusDevice, &lOverlapped, &transferred, TRUE) != 0)
 			    {
+                    std::lock_guard<std::mutex> lock(*_Target->NotificationLock);
+
 				    if (_Target->Notification == nullptr)
 				    {
 					    CloseHandle(lOverlapped.hEvent);
@@ -731,7 +735,7 @@ VIGEM_ERROR vigem_target_ds4_register_notification(
     return VIGEM_ERROR_NONE;
 }
 
-void vigem_target_x360_unregister_notification(PVIGEM_TARGET target)
+LPVOID vigem_target_x360_unregister_notification(PVIGEM_TARGET target)
 {	
 	if (target->cancelNotificationThreadEvent != 0)
 		SetEvent(target->cancelNotificationThreadEvent);
@@ -742,13 +746,29 @@ void vigem_target_x360_unregister_notification(PVIGEM_TARGET target)
 		target->cancelNotificationThreadEvent = nullptr;
 	}
 
+    const auto userData = target->NotificationUserData;
+
 	target->Notification = nullptr;
 	target->NotificationUserData = nullptr;
+
+    return userData;
 }
 
 void vigem_target_ds4_unregister_notification(PVIGEM_TARGET target)
 {
 	vigem_target_x360_unregister_notification(target); // The same x360_unregister handler works for DS4_unregister also
+}
+
+void vigem_target_lock_notification(PVIGEM_TARGET target)
+{
+    target->NotificationLock->lock();
+}
+
+void vigem_target_unlock_notification(PVIGEM_TARGET target)
+{
+    // "This is likely to be a code analysis bug in Visual Studio. Looks like C26110 can't recognize a mutex via a reference."
+    // https://stackoverflow.com/questions/58710090/why-does-a-lock-guard-on-a-mutex-reference-produce-c26110
+    target->NotificationLock->unlock();
 }
 
 void vigem_target_set_vid(PVIGEM_TARGET target, USHORT vid)
